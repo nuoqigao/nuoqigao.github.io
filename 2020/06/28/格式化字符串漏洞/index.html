@@ -1,0 +1,210 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width,initial-scale=1"><title>格式化字符串漏洞 | 高诺琪's Blog</title><meta name="description" content="前言格式化字符串漏洞是pwn中常见的漏洞，特别是配合堆溢出、栈溢出打组合拳有出其不意的效果，这里以wiki为主线稍微做个小总结 格式化字符串函数常见的输出格式化字符串函数有    函数 说明    printf 输出到stdout   fprintf 输出到指定FILE流   vprintf 根据参数列表格式化输出到 stdout   vfprintf 根据参数列表格式化输出到指定FILE流"><meta name="author" content="高诺琪"><meta name="copyright" content="高诺琪"><meta name="format-detection" content="telephone=no"><link rel="shortcut icon" href="/img/sister.jpg"><meta http-equiv="Cache-Control" content="no-transform"><meta http-equiv="Cache-Control" content="no-siteapp"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="dns-prefetch" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="https://fonts.googleapis.com" crossorigin="crossorigin"/><link rel="dns-prefetch" href="https://fonts.googleapis.com"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="dns-prefetch" href="//busuanzi.ibruce.info"/><meta name="google-site-verification" content="content"/><meta name="twitter:card" content="summary"><meta name="twitter:title" content="格式化字符串漏洞"><meta name="twitter:description" content="前言格式化字符串漏洞是pwn中常见的漏洞，特别是配合堆溢出、栈溢出打组合拳有出其不意的效果，这里以wiki为主线稍微做个小总结 格式化字符串函数常见的输出格式化字符串函数有    函数 说明    printf 输出到stdout   fprintf 输出到指定FILE流   vprintf 根据参数列表格式化输出到 stdout   vfprintf 根据参数列表格式化输出到指定FILE流"><meta name="twitter:image" content="http://www.int0x80.top/img/mount2.jpg"><meta property="og:type" content="article"><meta property="og:title" content="格式化字符串漏洞"><meta property="og:url" content="http://www.int0x80.top/2020/06/28/%E6%A0%BC%E5%BC%8F%E5%8C%96%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%BC%8F%E6%B4%9E/"><meta property="og:site_name" content="高诺琪's Blog"><meta property="og:description" content="前言格式化字符串漏洞是pwn中常见的漏洞，特别是配合堆溢出、栈溢出打组合拳有出其不意的效果，这里以wiki为主线稍微做个小总结 格式化字符串函数常见的输出格式化字符串函数有    函数 说明    printf 输出到stdout   fprintf 输出到指定FILE流   vprintf 根据参数列表格式化输出到 stdout   vfprintf 根据参数列表格式化输出到指定FILE流"><meta property="og:image" content="http://www.int0x80.top/img/mount2.jpg"><meta property="article:published_time" content="2020-06-28T08:47:47.533Z"><meta property="article:modified_time" content="2020-06-28T08:47:38.297Z"><script src="https://cdn.jsdelivr.net/npm/js-cookie/dist/js.cookie.min.js"></script><script>var autoChangeMode = '1'
+var t = Cookies.get("theme")
+if (autoChangeMode == '1'){
+  var isDarkMode = window.matchMedia("(prefers-color-scheme: dark)").matches
+  var isLightMode = window.matchMedia("(prefers-color-scheme: light)").matches
+  var isNotSpecified = window.matchMedia("(prefers-color-scheme: no-preference)").matches
+  var hasNoSupport = !isDarkMode && !isLightMode && !isNotSpecified
+
+  if (t === undefined){
+    if (isLightMode) activateLightMode()
+    else if (isDarkMode) activateDarkMode()
+    else if (isNotSpecified || hasNoSupport){
+      console.log('You specified no preference for a color scheme or your browser does not support it. I Schedule dark mode during night time.')
+      var now = new Date()
+      var hour = now.getHours()
+      var isNight = hour < 6 || hour >= 18
+      isNight ? activateDarkMode() : activateLightMode()
+  }
+  } else if (t == 'light') activateLightMode()
+  else activateDarkMode()
+
+} else if (autoChangeMode == '2'){
+  now = new Date();
+  hour = now.getHours();
+  isNight = hour < 6 || hour >= 18
+  if(t === undefined) isNight? activateDarkMode() : activateLightMode()
+  else if (t === 'light') activateLightMode()
+  else activateDarkMode() 
+} else {
+  if ( t == 'dark' ) activateDarkMode()
+  else if ( t == 'light') activateLightMode()
+}
+
+function activateDarkMode(){
+  document.documentElement.setAttribute('data-theme', 'dark')
+  if (document.querySelector('meta[name="theme-color"]') !== null){
+    document.querySelector('meta[name="theme-color"]').setAttribute('content','#000')
+  }
+}
+function activateLightMode(){
+  document.documentElement.setAttribute('data-theme', 'light')
+  if (document.querySelector('meta[name="theme-color"]') !== null){
+  document.querySelector('meta[name="theme-color"]').setAttribute('content','#fff')
+  }
+}</script><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@latest/css/font-awesome.min.css"><link rel="canonical" href="http://www.int0x80.top/2020/06/28/%E6%A0%BC%E5%BC%8F%E5%8C%96%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%BC%8F%E6%B4%9E/"><link rel="next" title="[工具]Nmap笔记" href="http://www.int0x80.top/2020/06/26/Nmap%E7%AC%94%E8%AE%B0/"><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Titillium+Web"><script>var GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: {"defaultEncoding":2,"translateDelay":0,"cookieDomain":"https://xxx/","msgToTraditionalChinese":"繁","msgToSimplifiedChinese":"簡"},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  bookmark: {
+    message_prev: '按',
+    message_next: '键将本页加入书签'
+  },
+  runtime_unit: '天',
+  runtime: true,
+  copyright: undefined,
+  ClickShowText: undefined,
+  medium_zoom: true,
+  fancybox: false,
+  Snackbar: undefined,
+  baiduPush: true,
+  highlightCopy: true,
+  highlightLang: false,
+  highlightShrink: 'false',
+  isFontAwesomeV5: false,
+  isPhotoFigcaption: false,
+  islazyload: false,
+  isanchor: false
+  
+}</script><script>var GLOBAL_CONFIG_SITE = { 
+  isPost: true,
+  isHome: false,
+  isSidebar: true  
+  }</script><noscript><style>
+#page-header {
+  opacity: 1
+}
+.justified-gallery img{
+  opacity: 1
+}
+</style></noscript><meta name="generator" content="Hexo 4.2.0"></head><body><div id="mobile-sidebar"><div id="menu_mask"></div><div id="mobile-sidebar-menus"><div class="mobile_author_icon"><img class="avatar-img" src="/img/avatar.png" onerror="onerror=null;src='/img/sister.jpg'" alt="avatar"/></div><div class="mobile_post_data"><div class="mobile_data_item is-center"><div class="mobile_data_link"><a href="/archives/"><div class="headline">文章</div><div class="length_num">8</div></a></div></div><div class="mobile_data_item is-center">      <div class="mobile_data_link"><a href="/tags/"><div class="headline">标签</div><div class="length_num">4</div></a></div></div><div class="mobile_data_item is-center">     <div class="mobile_data_link"><a href="/categories/"><div class="headline">分类</div><div class="length_num">4</div></a></div></div></div><hr/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fa fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fa fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fa fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fa fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fa fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fa fa-heart"></i><span> 关于</span></a></div></div></div></div><i class="fa fa-arrow-right on" id="toggle-sidebar" aria-hidden="true">     </i><div id="sidebar"><div class="sidebar-toc"><div class="sidebar-toc__title">目录</div><div class="sidebar-toc__progress"><span class="progress-notice">你已经读了</span><span class="progress-num">0</span><span class="progress-percentage">%</span><div class="sidebar-toc__progress-bar">     </div></div><div class="sidebar-toc__content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#前言"><span class="toc-number">1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#格式化字符串函数"><span class="toc-number">2.</span> <span class="toc-text">格式化字符串函数</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#漏洞原理"><span class="toc-number">3.</span> <span class="toc-text">漏洞原理</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#漏洞利用"><span class="toc-number">4.</span> <span class="toc-text">漏洞利用</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#任意地址读"><span class="toc-number">4.1.</span> <span class="toc-text">任意地址读</span></a></li></ol></li></ol></div></div></div><div id="body-wrap"><div class="post-bg" id="nav" style="background-image: url(/img/mount2.jpg)"><div id="page-header"><span class="pull_left" id="blog_name"><a class="blog_title" id="site-name" href="/">高诺琪's Blog</a></span><span class="pull_right menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fa fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fa fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fa fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fa fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fa fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fa fa-heart"></i><span> 关于</span></a></div></div><span class="toggle-menu close"><a class="site-page"><i class="fa fa-bars fa-fw" aria-hidden="true"></i></a></span></span></div><div id="post-info"><div id="post-title"><div class="posttitle">格式化字符串漏洞</div></div><div id="post-meta"><div class="meta-firstline"><time class="post-meta__date"><span class="post-meta__date-created" title="发表于 2020-06-28 16:47:47"><i class="fa fa-calendar" aria-hidden="true"></i> 发表于 2020-06-28</span><span class="post-meta__separator">|</span><span class="post-meta__date-updated" title="更新于 2020-06-28 16:47:38"><i class="fa fa-history" aria-hidden="true"></i> 更新于 2020-06-28</span></time></div><div class="meta-secondline"> </div><div class="meta-thirdline"><span class="post-meta-pv-cv"><i class="fa fa-eye post-meta__icon" aria-hidden="true"> </i><span>阅读量:</span><span id="busuanzi_value_page_pv"></span></span><span class="post-meta-commentcount"></span></div></div></div></div><main class="layout_post" id="content-inner"><article id="post"><div class="post-content" id="article-container"><h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>格式化字符串漏洞是pwn中常见的漏洞，特别是配合堆溢出、栈溢出打组合拳有出其不意的效果，这里以<a href="https://ctf-wiki.github.io/ctf-wiki/pwn/linux/fmtstr/fmtstr_intro-zh/" target="_blank" rel="noopener">wiki</a>为主线稍微做个小总结</p>
+<h2 id="格式化字符串函数"><a href="#格式化字符串函数" class="headerlink" title="格式化字符串函数"></a>格式化字符串函数</h2><p>常见的输出格式化字符串函数有</p>
+<table>
+<thead>
+<tr>
+<th>函数</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>printf</td>
+<td>输出到stdout</td>
+</tr>
+<tr>
+<td>fprintf</td>
+<td>输出到指定FILE流</td>
+</tr>
+<tr>
+<td>vprintf</td>
+<td>根据参数列表格式化输出到 stdout</td>
+</tr>
+<tr>
+<td>vfprintf</td>
+<td>根据参数列表格式化输出到指定FILE流</td>
+</tr>
+<tr>
+<td>sprintf</td>
+<td>输出到字符串</td>
+</tr>
+<tr>
+<td>snprintf</td>
+<td>输出指定字节数到字符串</td>
+</tr>
+<tr>
+<td>vsprintf</td>
+<td>根据参数列表格式化输出到字符串</td>
+</tr>
+<tr>
+<td>vsnprintf</td>
+<td>根据参数列表格式化输出指定字节到字符串</td>
+</tr>
+<tr>
+<td>setproctitle</td>
+<td>设置argv</td>
+</tr>
+<tr>
+<td>syslog</td>
+<td>输出日志</td>
+</tr>
+</tbody></table>
+<br/>
+
+<p>基本格式：<code>%[parameter][flags][field width][.precision][length]type</code><br>重点关注以下几个pattern：</p>
+<ul>
+<li>parameter：   n$，获取格式化字符串中的指定参数</li>
+<li>field width： 输出的最小宽度</li>
+<li>precision：   输出的最大长度</li>
+<li>length：  输出的长度<br> hh：输出1byte<br> h：输出2byte<br> l：输出4byte<br> ll：输出8byte ​</li>
+<li>type：<br> %d：用于读取10进制数值　　<br> %x：用于读取16进制数值<br> %s：用于读取字符串值<br> %n：写入字符数到指定地址（可以进行任意地址写）<br> %p：用于读取指针地址</li>
+</ul>
+<br/>
+
+<h2 id="漏洞原理"><a href="#漏洞原理" class="headerlink" title="漏洞原理"></a>漏洞原理</h2><p>printf函数正常是这样打印出我们输入的内容</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//normal.c</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">        <span class="keyword">char</span> str[<span class="number">100</span>];</span><br><span class="line">        <span class="built_in">scanf</span>(<span class="string">"%s"</span>,str);</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"%s\n"</span>,str);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>但是有的人会偷懒写成这样，看上去没啥问题，而且程序也可以正常运行，但是这样却产生了格式化字符串漏洞</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//vuln.c</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">        <span class="keyword">char</span> str[<span class="number">100</span>];</span><br><span class="line">        <span class="built_in">scanf</span>(<span class="string">"%s"</span>,str);</span><br><span class="line">        <span class="built_in">printf</span>(str); <span class="comment">//格式化字符串漏洞</span></span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<br/>
+
+<p>漏洞来自于printf函数的设计缺陷，格式化字符串函数通过cdecl的函数调用约定将要解析的参数从右往左压入栈中。在进入printf函数时会根据相应的格式化字符类型，获取相应的参数，对其进行解析并输出，如果格式化字符类型和要解析的参数一一对应，那么就不会产生问题。但是如果格式化字符类型大于要解析的参数，那么它会继续解析栈上的内容，这就产生了格式化字符串漏洞中的任意地址读取</p>
+<p>举个例子，当格式化字符类型和参数一一对应时正常解析</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//normal.c</span></span><br><span class="line"><span class="comment">//gcc -m32  -fno-stack-protector -no-pie -o normal.out  normal.c</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"%d %d %d %s\n"</span>,<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>,<span class="string">"test"</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>输出结果为：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">gnq@gnq:~/test$ ./normal.out </span><br><span class="line"><span class="number">1</span> <span class="number">2</span> <span class="number">3</span> test</span><br></pre></td></tr></table></figure>
+
+<p>现在用gdb在printf下个断点，可以看到栈中的内容依次被对应的字符格式解析出来</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">gnq@gnq:~/test$ gdb normal.out </span><br><span class="line">...</span><br><span class="line">pwndbg&gt; b <span class="built_in">printf</span></span><br><span class="line">Breakpoint <span class="number">1</span> at <span class="number">0x80482e0</span></span><br><span class="line">pwndbg&gt; r</span><br><span class="line">...</span><br><span class="line">...</span><br><span class="line">pwndbg&gt; <span class="built_in">stack</span> <span class="number">10</span></span><br><span class="line"><span class="number">00</span>:<span class="number">0000</span>│ esp  <span class="number">0xffffcf5c</span> —▸ <span class="number">0x8048434</span> (main+<span class="number">41</span>) ◂— add    esp, <span class="number">0x20</span></span><br><span class="line"><span class="number">01</span>:<span class="number">0004</span>│      <span class="number">0xffffcf60</span> —▸ <span class="number">0x80484d5</span> ◂— <span class="keyword">and</span>    eax, <span class="number">0x64252064</span> <span class="comment">/* '%d %d %d %s\n' */</span></span><br><span class="line"><span class="number">02</span>:<span class="number">0008</span>│      <span class="number">0xffffcf64</span> ◂— <span class="number">0x1</span> </span><br><span class="line"><span class="number">03</span>:<span class="number">000</span>c│      <span class="number">0xffffcf68</span> ◂— <span class="number">0x2</span> </span><br><span class="line"><span class="number">04</span>:<span class="number">0010</span>│      <span class="number">0xffffcf6c</span> ◂— <span class="number">0x3</span> </span><br><span class="line"><span class="number">05</span>:<span class="number">0014</span>│      <span class="number">0xffffcf70</span> —▸ <span class="number">0x80484d0</span> ◂— je     <span class="number">0x8048537</span> <span class="comment">/* 'test' */</span>   </span><br><span class="line">06:0018│      0xffffcf74 —▸ 0xffffd034 —▸ 0xffffd228 ◂— '/home/gnq/test/normal.out'</span><br><span class="line">07:001c│      0xffffcf78 —▸ 0xffffd03c —▸ 0xffffd242 ◂— 'LC_PAPER=zh_CN.UTF-8'</span><br><span class="line"><span class="number">08</span>:<span class="number">0020</span>│      <span class="number">0xffffcf7c</span> —▸ <span class="number">0x8048471</span> (__libc_csu_init+<span class="number">33</span>) ◂— lea    eax, [ebx - <span class="number">0xf8</span>]</span><br><span class="line"><span class="number">09</span>:<span class="number">0024</span>│      <span class="number">0xffffcf80</span> —▸ <span class="number">0xf7fb63dc</span> (__exit_funcs) —▸ <span class="number">0xf7fb71e0</span> (initial) ◂— <span class="number">0x0</span></span><br><span class="line">pwndbg&gt; c</span><br><span class="line">Continuing.</span><br><span class="line"><span class="number">1</span> <span class="number">2</span> <span class="number">3</span> test</span><br><span class="line">[Inferior <span class="number">1</span> (<span class="built_in">process</span> <span class="number">32539</span>) exited normally]</span><br></pre></td></tr></table></figure>
+<br/>
+
+<p>当格式化字符类型大于要解析的参数时，它会继续根据字符类型解析解析栈上的内容，从而导致任意地址读取（内存泄漏）</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//vuln.c</span></span><br><span class="line"><span class="comment">//gcc -m32  -fno-stack-protector -no-pie -o vuln.out  vuln.c</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"%d %d %d %s %p %p\n"</span>,<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>,<span class="string">"test"</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>现在的输出结果</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">gnq@gnq:~/test$ ./vuln.out </span><br><span class="line"><span class="number">1</span> <span class="number">2</span> <span class="number">3</span> test <span class="number">0xffa83c94</span> <span class="number">0xffa83c9c</span></span><br></pre></td></tr></table></figure>
+
+<p>继续用gdb在printf下断点，可以看到多余的两个%p打印出栈上的地址，</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">gnq@gnq:~/test$ gdb vuln.out </span><br><span class="line">...</span><br><span class="line">pwndbg&gt; b <span class="built_in">printf</span></span><br><span class="line">Breakpoint <span class="number">1</span> at <span class="number">0x80482e0</span></span><br><span class="line">pwndbg&gt; r</span><br><span class="line">...</span><br><span class="line">...</span><br><span class="line">pwndbg&gt; <span class="built_in">stack</span> <span class="number">10</span></span><br><span class="line"><span class="number">00</span>:<span class="number">0000</span>│ esp  <span class="number">0xffffcf5c</span> —▸ <span class="number">0x8048434</span> (main+<span class="number">41</span>) ◂— add    esp, <span class="number">0x20</span></span><br><span class="line"><span class="number">01</span>:<span class="number">0004</span>│      <span class="number">0xffffcf60</span> —▸ <span class="number">0x80484d5</span> ◂— <span class="keyword">and</span>    eax, <span class="number">0x64252064</span> <span class="comment">/* '%d %d %d %s %p %p\n' */</span></span><br><span class="line"><span class="number">02</span>:<span class="number">0008</span>│      <span class="number">0xffffcf64</span> ◂— <span class="number">0x1</span></span><br><span class="line"><span class="number">03</span>:<span class="number">000</span>c│      <span class="number">0xffffcf68</span> ◂— <span class="number">0x2</span></span><br><span class="line"><span class="number">04</span>:<span class="number">0010</span>│      <span class="number">0xffffcf6c</span> ◂— <span class="number">0x3</span></span><br><span class="line"><span class="number">05</span>:<span class="number">0014</span>│      <span class="number">0xffffcf70</span> —▸ <span class="number">0x80484d0</span> ◂— je     <span class="number">0x8048537</span> <span class="comment">/* 'test' */</span></span><br><span class="line">06:0018│      0xffffcf74 —▸ 0xffffd034 —▸ 0xffffd22c ◂— '/home/gnq/test/vuln.out'</span><br><span class="line">07:001c│      0xffffcf78 —▸ 0xffffd03c —▸ 0xffffd244 ◂— 'LC_PAPER=zh_CN.UTF-8' </span><br><span class="line"><span class="number">08</span>:<span class="number">0020</span>│      <span class="number">0xffffcf7c</span> —▸ <span class="number">0x8048471</span> (__libc_csu_init+<span class="number">33</span>) ◂— lea    eax, [ebx - <span class="number">0xf8</span>]</span><br><span class="line"><span class="number">09</span>:<span class="number">0024</span>│      <span class="number">0xffffcf80</span> —▸ <span class="number">0xf7fb63dc</span> (__exit_funcs) —▸ <span class="number">0xf7fb71e0</span> (initial) ◂— <span class="number">0x0</span></span><br><span class="line">pwndbg&gt; c</span><br><span class="line">Continuing.</span><br><span class="line"><span class="number">1</span> <span class="number">2</span> <span class="number">3</span> test <span class="number">0xffffd034</span> <span class="number">0xffffd03c</span></span><br><span class="line">[Inferior <span class="number">1</span> (<span class="built_in">process</span> <span class="number">32642</span>) exited normally]</span><br></pre></td></tr></table></figure>
+
+<br/>
+
+<h2 id="漏洞利用"><a href="#漏洞利用" class="headerlink" title="漏洞利用"></a>漏洞利用</h2><h3 id="任意地址读"><a href="#任意地址读" class="headerlink" title="任意地址读"></a>任意地址读</h3><p>前面已经展示了任意地址读，当用户可控的情况下可以获取我们想要的信息</p>
+<ul>
+<li>泄露栈内存<br>获取某个变量的值<br>获取某个变量对应地址的内存</li>
+<li>泄露任意地址内存<br>获取函数的GOT表对应的地址，从而找到对应的libc<br>dump程序</li>
+</ul>
+<br/>
+
+<p>继续以上面的代码进行测试</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//vuln2.c</span></span><br><span class="line"><span class="comment">//gcc -m32  -fno-stack-protector -no-pie -o vuln2.out  vuln2.c</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">        <span class="keyword">char</span> str[<span class="number">100</span>]; </span><br><span class="line">        <span class="built_in">scanf</span>(<span class="string">"%s"</span>,str);</span><br><span class="line">        <span class="built_in">printf</span>(str); <span class="comment">//格式化字符串漏洞</span></span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>当用户可控的情况下输入%p来泄露栈中地址，也可以用%s来泄露出栈中的字符，但是并不是全部的地址都可以被解析成字符，无法解析就会导致程序崩溃<br>用gdb调试可以看到栈的地址被%p逐一打印出来，这样就可以泄露出栈的地址</p>
+<pre><code class="c">gnq@gnq:~/test$ gdb vuln2.out 
+...
+pwndbg&gt; b <span class="built_in">printf</span>
+Breakpoint <span class="number">1</span> at <span class="number">0x8048330</span>
+pwndbg&gt; r
+Starting program: /<span class="built_in">home</span>/gnq/test/vuln2.out 
+%p-%p-%p-%p-%p <span class="comment">//泄露栈地址</span>
+...
+...
+pwndbg&gt; <span class="built_in">stack</span> <span class="number">10</span>
+<span class="number">00</span>:<span class="number">0000</span>│ esp  <span class="number">0xffffcf1c</span> —▸ <span class="number">0x804849c</span> (main+<span class="number">49</span>) ◂— add    esp, <span class="number">0x10</span>
+01:0004│      0xffffcf20 —▸ 0xffffcf3c ◂— '%p-%p-%p-%p-%p'
+... ↓
+<span class="number">03</span>:<span class="number">000</span>c│      <span class="number">0xffffcf28</span> ◂— <span class="number">0xc2</span>
+<span class="number">04</span>:<span class="number">0010</span>│      <span class="number">0xffffcf2c</span> —▸ <span class="number">0xf7e946bb</span> (handle_intel+<span class="number">107</span>) ◂— add    esp, <span class="number">0x10</span>
+<span class="number">05</span>:<span class="number">0014</span>│      <span class="number">0xffffcf30</span> —▸ <span class="number">0xffffcf5e</span> —▸ <span class="number">0xffff0000</span> ◂— <span class="number">0x0</span>
+06:0018│      0xffffcf34 —▸ 0xffffd05c —▸ 0xffffd25d ◂— 'LC_PAPER=zh_CN.UTF-8'
+<span class="number">07</span>:<span class="number">001</span>c│      <span class="number">0xffffcf38</span> ◂— <span class="number">0xe0</span>
+08:0020│ eax  0xffffcf3c ◂— '%p-%p-%p-%p-%p'
+09:0024│      0xffffcf40 ◂— 'p-%p-%p-%p'
+pwndbg&gt; c
+Continuing.
+<span class="number">0xffffcf3c</span><span class="number">-0xc2</span><span class="number">-0xf7e946bb</span><span class="number">-0xffffcf5e</span><span class="number">-0xffffd05c</span>[Inferior <span class="number">1</span> (<span class="built_in">process</span> <span class="number">33669</span>) exited normally]</code></pre>
+<p>还有一种方法可以直接打印出对应栈位置的地址 <code>%n$x</code>  返回栈上第（n+1）个参数的值</p>
+<p><a href="https://blog.csdn.net/qq_43394612/article/details/84900668" target="_blank" rel="noopener">https://blog.csdn.net/qq_43394612/article/details/84900668</a><br><a href="https://www.cnblogs.com/ichunqiu/p/9329387.html" target="_blank" rel="noopener">https://www.cnblogs.com/ichunqiu/p/9329387.html</a><br><a href="https://www.cnblogs.com/pwn2web/p/12077965.html" target="_blank" rel="noopener">https://www.cnblogs.com/pwn2web/p/12077965.html</a><br><a href="https://bbs.pediy.com/thread-253638.htm" target="_blank" rel="noopener">https://bbs.pediy.com/thread-253638.htm</a><br><a href="https://www.jianshu.com/p/bced7df926bb" target="_blank" rel="noopener">https://www.jianshu.com/p/bced7df926bb</a><br><a href="https://baijiahao.baidu.com/s?id=1662015331390249618&amp;wfr=spider&amp;for=pc" target="_blank" rel="noopener">https://baijiahao.baidu.com/s?id=1662015331390249618&amp;wfr=spider&amp;for=pc</a><br><a href="https://www.dazhuanlan.com/2019/11/11/5dc98122e426e/" target="_blank" rel="noopener">https://www.dazhuanlan.com/2019/11/11/5dc98122e426e/</a><br><a href="https://www.anquanke.com/post/id/147666" target="_blank" rel="noopener">https://www.anquanke.com/post/id/147666</a><br><a href="https://www.dazhuanlan.com/2019/11/07/5dc3d67635dfe/" target="_blank" rel="noopener">https://www.dazhuanlan.com/2019/11/07/5dc3d67635dfe/</a><br><a href="https://xz.aliyun.com/t/7398" target="_blank" rel="noopener">https://xz.aliyun.com/t/7398</a><br><a href="https://wiki.x10sec.org/pwn/fmtstr/fmtstr_exploit/" target="_blank" rel="noopener">https://wiki.x10sec.org/pwn/fmtstr/fmtstr_exploit/</a></p>
+</div><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a href="mailto:undefined">高诺琪</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="http://www.int0x80.top/2020/06/28/%E6%A0%BC%E5%BC%8F%E5%8C%96%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%BC%8F%E6%B4%9E/">http://www.int0x80.top/2020/06/28/%E6%A0%BC%E5%BC%8F%E5%8C%96%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%BC%8F%E6%B4%9E/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="http://www.int0x80.top" target="_blank">高诺琪's Blog</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"></div><div class="post_share"></div></div><nav class="pagination_post" id="pagination"><div class="next-post pull-full"><a href="/2020/06/26/Nmap%E7%AC%94%E8%AE%B0/"><img class="next_cover" src="/img/nmap.png" onerror="onerror=null;src='/img/404.jpg'"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">[工具]Nmap笔记</div></div></a></div></nav></article></main><footer id="footer" style="background-image: url(/img/mount2.jpg)" data-type="photo"><div id="footer-wrap"><div class="copyright">&copy;2020 By 高诺琪</div><div class="framework-info"><span>驱动 </span><a href="https://hexo.io" target="_blank" rel="noopener"><span>Hexo</span></a><span class="footer-separator">|</span><span>主题 </span><a href="https://github.com/jerryc127/hexo-theme-butterfly" target="_blank" rel="noopener"><span>Butterfly</span></a></div></div></footer></div><section class="rightside" id="rightside"><div id="rightside-config-hide"><i class="fa fa-book" id="readmode" title="阅读模式"></i><i class="fa fa-plus" id="font_plus" title="放大字体"></i><i class="fa fa-minus" id="font_minus" title="缩小字体"></i><a class="translate_chn_to_cht" id="translateLink" href="javascript:translatePage();" title="简繁转换" target="_self">繁</a><i class="darkmode fa fa-moon-o" id="darkmode" title="夜间模式"></i></div><div id="rightside-config-show"><div id="rightside_config" title="设置"><i class="fa fa-cog" aria-hidden="true"></i></div><i class="fa fa-list-ul close" id="mobile-toc-button" title="目录" aria-hidden="true"></i><i class="fa fa-arrow-up" id="go-up" title="回到顶部" aria-hidden="true"></i></div></section><script src="https://cdn.jsdelivr.net/npm/jquery@latest/dist/jquery.min.js"></script><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="/js/tw_cn.js"></script><script src="https://cdn.jsdelivr.net/npm/medium-zoom/dist/medium-zoom.min.js"></script><script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><script src="https://cdn.jsdelivr.net/npm/instant.page@latest/instantpage.min.js" type="module"></script></body></html>
